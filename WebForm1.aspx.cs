@@ -56,10 +56,18 @@ namespace WebApplicationDemo
             PrepareColumns(sheet);
             PrepareWatermarkStyleCell(sheet.Cells[1, 1]);
             FillInvoice(sheet);
-            using (FileStream stream = new FileStream("C:\\Users\\LeHuyHoang\\Documents\\SavedDocumentHoangSX.xlsx",
-                FileMode.Create, FileAccess.ReadWrite))
+            //using (FileStream stream = new FileStream("C:\\Users\\LeHuyHoang\\Documents\\SavedDocumentHoangSX.xlsx",
+            //    FileMode.Create, FileAccess.ReadWrite))
+            using (MemoryStream stream = new MemoryStream())
             {
-                book.SaveDocument(stream, DocumentFormat.Xlsx);
+                book.SaveDocument(stream, DocumentFormat.Xlsb);
+                byte[] bytesInStream = stream.ToArray(); // simpler way of converting to array
+                stream.Close();
+                Response.Clear();
+                Response.ContentType = "application/force-download";
+                Response.AddHeader("content-disposition", "attachment;    filename=name_you_fileSB.xlsb");
+                Response.BinaryWrite(bytesInStream);
+                Response.End();
             }
         }
         static void PrepareColumns(Worksheet sheet)
