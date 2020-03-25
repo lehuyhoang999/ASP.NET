@@ -1,0 +1,4 @@
+https://demos.devexpress.com/ASPxSpreadsheetDemos/Features/Formulas.aspx
+https://docs.devexpress.com/AspNet/16167/aspnet-webforms-controls/spreadsheet/concepts/spreadsheet-document/measure-units
+https://docs.devexpress.com/OfficeFileAPI/117097/spreadsheet-document-api/examples/workbooks/how-to-specify-document-properties
+https://documentation.devexpress.com/WindowsForms/15352/Controls-and-Libraries/Spreadsheet/Examples/Workbooks/How-to-Create-a-New-Workbook
