@@ -15,3 +15,5 @@
      
         paramCollection.Add(new DBParameter("CUR", DBNull.Value, OracleDbType.RefCursor, ParameterDirection.Output));
         DataTable dt = _dbHelper.ExecuteDataTable("PKG_ISP_FILEMANA.PROC_GET_DATA_PHE_DUYET", paramCollection, CommandType.StoredProcedure);
+
+using Oracle.DataAccess.Client;
