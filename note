@@ -1,0 +1,17 @@
+<add name="ConnectionString" connectionString="Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=10.1.14.230)(PORT=1521))(CONNECT_DATA=(SERVER=dedicated)(SERVICE_NAME=IBSIT)));User ID=PGREPORT;Password=PGREPORT;Min Pool Size=20;Max Pool Size=200;Connection Lifetime=120;Connection Timeout=100;" providerName="System.Data.OracleClient"/>
+
+        DBParameterCollection paramCollection = new DBParameterCollection();
+        paramCollection.Add(new DBParameter("P_XML_ELEMENT", p_xml, OracleDbType.Varchar2, ParameterDirection.Input));
+        paramCollection.Add(new DBParameter("O_ISERROR", DBNull.Value, OracleDbType.Int64, ParameterDirection.Output));
+        OracleParameterCollection paramListOutput = _dbHelper.ExecuteNonQuerySelect("PKG_ISP_FILEMANA.PROC_UPDATE_INSERT_RC_IN_DAY",
+                                                                                    paramCollection, CommandType.StoredProcedure);
+
+        string o_result = paramListOutput["O_RESUALT"].Value.ToString();
+        string o_result_des = paramListOutput["O_RESUALT_DES"].Value.ToString();
+        int isUpdate = int.Parse(paramListOutput["O_ISERROR"].Value.ToString());
+        
+        DBParameterCollection paramCollection = new DBParameterCollection();
+        paramCollection.Add(new DBParameter("P_XML_ELEMENT", xmlAll, OracleDbType.Varchar2, ParameterDirection.Input));
+     
+        paramCollection.Add(new DBParameter("CUR", DBNull.Value, OracleDbType.RefCursor, ParameterDirection.Output));
+        DataTable dt = _dbHelper.ExecuteDataTable("PKG_ISP_FILEMANA.PROC_GET_DATA_PHE_DUYET", paramCollection, CommandType.StoredProcedure);
