@@ -1,0 +1,359 @@
+   protected void btnExExcellSX_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            //lấy lsData
+            DataTable dtDataGoc = new DataTable();
+            dtDataGoc = (DataTable)grResult.DataSource;
+
+            if (dtDataGoc != null)
+            {
+                DataTable dtData = dtDataGoc.Clone();
+                dtData = dtDataGoc.Copy();
+
+                fileName = "TLTS_" + DateTime.Now.ToString("ddMMyyyy");
+                List<string> ColumnsToBeDeleted = new List<string>();
+                List<string> ColumnsToExcell = new List<string>();
+                if (dtData.Columns.Count > 0)
+                {
+                    //cac truong can xuat ra excell
+                    ColumnsToExcell.Add("NO_NUMBER");
+                    ColumnsToExcell.Add("DISP_TYPE");
+                    ColumnsToExcell.Add("MSG_ID_BATCH");
+                    ColumnsToExcell.Add("TK_CHUYEN");
+                    ColumnsToExcell.Add("SO_TIEN");
+                    ColumnsToExcell.Add("NARRATIVE");
+                    ColumnsToExcell.Add("TK_NHAN");
+                    ColumnsToExcell.Add("NGAY_GD");
+                    ColumnsToExcell.Add("TEN_TK_CHUYEN");
+                    ColumnsToExcell.Add("TEN_TK_NHAN");
+                    ColumnsToExcell.Add("ACQ_ID");
+                    ColumnsToExcell.Add("BEN_ID");
+                    ColumnsToExcell.Add("TT_FCC");
+                    ColumnsToExcell.Add("TT_ACH");
+                    ColumnsToExcell.Add("TT_PARTNER");
+                    ColumnsToExcell.Add("ANSWER_CODE");
+                    ColumnsToExcell.Add("SO_TIEN_HTTS");
+                    ColumnsToExcell.Add("NOTE");
+                    ColumnsToExcell.Add("PROCESS_STATUS_DESC");
+                    ColumnsToExcell.Add("ID_GD_RETURN");
+                    ColumnsToExcell.Add("ERROR");
+
+                    foreach(DataColumn col in dtDataGoc.Columns)
+                    {
+                        if (!ColumnsToExcell.Contains(col.ColumnName))
+                        {
+                            dtData.Columns.Remove(col.ColumnName);
+                        }
+                    }
+
+                    DataTable dtCloned = dtData.Clone();
+                    foreach (DataRow row in dtData.Rows)
+                    {
+                        dtCloned.ImportRow(row);
+                    }
+
+                    DataTable dtEp = parseColumsNameToVN(dtCloned);
+
+                    int cnt = 1;
+                    foreach (DataRow row in dtEp.Rows)
+                    {
+                        row[0] = cnt;
+                        cnt++;
+                    }
+
+                    ExportToExcelXLSX(dtEp, fileName, "Sheet1");
+
+                }
+                else
+                {
+                    showMsgAlert("Không có dữ liệu để xuất");
+                }
+
+            }
+            else
+            {
+                showMsgAlert("Không có dữ liệu để xuất");
+            }
+        }
+        catch (ThreadAbortException ex)
+        {
+            corLog.WriteLog("[WARNING: ][TransactionAdd][btnExExcellSB_Click]: " + ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            corLog.WriteLog("[ERROR: ][TransactionAdd][btnExExcellSX_Click]: " + ex.ToString());
+
+            lblalert.Text = "Lỗi khi xử lý btnExExcellSX_Click.";
+            lblErrorCode.Text = "<b>Mã lỗi:</b> 100";
+            lblErrorDetail.Text = "Lỗi hệ thống";
+            txtDatabase.InnerText = "";
+            txtSource.InnerText = ex.ToString();
+            updateASPPAlert(true);
+            ASPPAlert.ShowOnPageLoad = true;
+        }
+    }
+
+    private void ExportToExcelXLSX(DataTable dt, string fileName, string worksheetName)
+    {
+        ExcelPackage excel = new ExcelPackage();
+        var workSheet = excel.Workbook.Worksheets.Add("Sheet1");
+        workSheet.Cells[1, 1].LoadFromDataTable(dt, true);
+        workSheet.Cells.AutoFitColumns();
+        workSheet.Column(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+        using (var memoryStream = new MemoryStream())
+        {
+            Response.Clear();
+            Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            Response.AddHeader("content-disposition", "attachment;  filename=" + fileName + ".xlsx");
+
+            excel.SaveAs(memoryStream);
+            memoryStream.WriteTo(Response.OutputStream);
+
+            Response.Flush();
+            Response.End();
+        }
+
+    }
+
+    private void ExportToExcelXLSB(DataTable dt, string fileName, string worksheetName)
+    {
+        int rowindex = 0;
+        int columnindex = 0;
+
+        Microsoft.Office.Interop.Excel.Application wapp = new Microsoft.Office.Interop.Excel.Application();
+        Microsoft.Office.Interop.Excel.Worksheet wsheet;
+        Microsoft.Office.Interop.Excel.Workbook wbook;
+
+        wapp.Visible = false;
+
+        wbook = wapp.Workbooks.Add(true);
+        wsheet = (Microsoft.Office.Interop.Excel.Worksheet)wbook.ActiveSheet;
+
+
+        try
+        {
+            for (int i = 0; i < dt.Columns.Count; i++)
+            {
+
+                wsheet.Cells[1, i + 1] = dt.Columns[i].ColumnName;
+
+            }
+
+            foreach (DataRow row in dt.Rows)
+            {
+                rowindex++;
+                columnindex = 0;
+                foreach (DataColumn col in dt.Columns)
+                {
+                    columnindex++;
+                    wsheet.Cells[rowindex + 1, columnindex] = "'" + Convert.ToString(row[col.ColumnName]);
+                }
+            }
+            wsheet.Columns.AutoFit();
+            wsheet.Range["A1"].HorizontalAlignment = ExcelHorizontalAlignment.Left;
+        }
+        catch (Exception ex)
+        {
+            String err = ex.Message;
+        }
+
+        wapp.UserControl = true;
+        
+        string pathDownload = WebConfigurationManager.AppSettings["EXPORT_XLSB"];
+        wbook.SaveAs(pathDownload + fileName + ".xlsb", Microsoft.Office.Interop.Excel.XlFileFormat.xlExcel12, Type.Missing, Type.Missing,
+        false, false, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlNoChange,
+        Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+        wbook.Close(null, null, null);
+        wapp.Quit();
+        
+        string textFile = @pathDownload + fileName + ".xlsb";
+        try
+        {
+
+            if (File.Exists(textFile))
+            {
+                byte[] Content = File.ReadAllBytes(textFile);
+                Response.Clear();
+                Response.ContentType = "application/vnd.ms-excel.sheet.binary.macroEnabled.12";
+                Response.AddHeader("content-disposition", "attachment; filename=" + fileName + ".xlsb");
+                Response.BufferOutput = true;
+                Response.OutputStream.Write(Content, 0, Content.Length);
+                Response.End();
+
+            }
+        }
+        catch (Exception ex)
+        {
+            showMsgAlert("Not Path Found!");
+        }
+        finally
+        {
+            if (File.Exists(textFile))
+            {
+                File.Delete(textFile);
+            }
+
+        }
+
+    }
+
+    private DataTable parseColumsNameToVN(DataTable dt)
+    {
+        if (dt.Columns.Contains("NO_NUMBER"))
+        {
+            dt.Columns["NO_NUMBER"].ColumnName = "STT";
+        }
+        if (dt.Columns.Contains("TT_PARNER"))
+        {
+            dt.Columns["TT_PARNER"].ColumnName = "Trạng thái GD tại NH đối tác";
+        }
+
+        if (dt.Columns.Contains("DISP_TYPE"))
+        {
+            dt.Columns["DISP_TYPE"].ColumnName = "Mã tra soát";
+        }
+
+        if (dt.Columns.Contains("MSG_ID_BATCH"))
+        {
+            dt.Columns["MSG_ID_BATCH"].ColumnName = "Trace";
+        }
+
+        if (dt.Columns.Contains("TK_CHUYEN"))
+        {
+            dt.Columns["TK_CHUYEN"].ColumnName = "Tài khoản chuyển";
+        }
+
+        if (dt.Columns.Contains("TOTAL_BTCH_AMT"))
+        {
+            dt.Columns["TOTAL_BTCH_AMT"].ColumnName = "Số tiền";
+        }
+
+        if (dt.Columns.Contains("XREF_CORE"))
+        {
+            dt.Columns["XREF_CORE"].ColumnName = "Số Ref Core";
+        }
+
+        if (dt.Columns.Contains("TK_NHAN"))
+        {
+            dt.Columns["TK_NHAN"].ColumnName = "Tài khoản nhận";
+        }
+
+        if (dt.Columns.Contains("NGAY_GD"))
+        {
+            dt.Columns["NGAY_GD"].ColumnName = "Ngày giao dịch";
+        }
+
+        if (dt.Columns.Contains("TEN_TK_CHUYEN"))
+        {
+            dt.Columns["TEN_TK_CHUYEN"].ColumnName = "Tên người chuyển";
+        }
+
+        if (dt.Columns.Contains("TEN_TK_NHAN"))
+        {
+            dt.Columns["TEN_TK_NHAN"].ColumnName = "Tên người nhận";
+        }
+
+        if (dt.Columns.Contains("RESPONSE_CODE_DESC"))
+        {
+            dt.Columns["RESPONSE_CODE_DESC"].ColumnName = "Mã đối soát";
+        }
+
+        if (dt.Columns.Contains("TT_TPBANK"))
+        {
+            dt.Columns["TT_TPBANK"].ColumnName = "Trạng thái GD tại TPB";
+        }
+
+        if (dt.Columns.Contains("TT_ACH"))
+        {
+            dt.Columns["TT_ACH"].ColumnName = "Trạng thái GD tại ACH tại Napas";
+        }
+
+        if (dt.Columns.Contains("KENH_TH"))
+        {
+            dt.Columns["KENH_TH"].ColumnName = "Kênh thực hiện";
+        }
+
+        if (dt.Columns.Contains("PAYMENT_TYPE"))
+        {
+            dt.Columns["PAYMENT_TYPE"].ColumnName = "Loại GD";
+        }
+
+        if (dt.Columns.Contains("PROCESS_STATUS_DESC"))
+        {
+            dt.Columns["PROCESS_STATUS_DESC"].ColumnName = "Trạng thái trả lời tra soát";
+        }
+
+        if (dt.Columns.Contains("ERROR"))
+        {
+            dt.Columns["ERROR"].ColumnName = "Lỗi";
+        }
+
+        if (dt.Columns.Contains("END_FCC_CODE"))
+        {
+            dt.Columns["END_FCC_CODE"].ColumnName = "Mã GD FCC sau đối soát";
+        }
+
+        if (dt.Columns.Contains("END_TRANS_TYPE"))
+        {
+            dt.Columns["END_TRANS_TYPE"].ColumnName = "Loại GD sau đối soát";
+        }
+
+        if (dt.Columns.Contains("CREATED_DT"))
+        {
+            dt.Columns["CREATED_DT"].ColumnName = "Thời gian xử lý sau đối soát";
+        }
+
+        if (dt.Columns.Contains("TRANS_RETURN_TYPE"))
+        {
+            dt.Columns["TRANS_RETURN_TYPE"].ColumnName = "Loại GD sau đối soát";
+        }
+
+        if (dt.Columns.Contains("REASON"))
+        {
+            dt.Columns["REASON"].ColumnName = "Lý do từ chối";
+        }
+
+        if (dt.Columns.Contains("TT_FCC"))
+        {
+            dt.Columns["TT_FCC"].ColumnName = "Trạng thái GD tại TPB";
+        }
+
+        if (dt.Columns.Contains("TT_FCC"))
+        {
+            dt.Columns["TT_FCC"].ColumnName = "Trạng thái GD tại TPB";
+        }
+
+        if (dt.Columns.Contains("TT_PARTNER"))
+        {
+            dt.Columns["TT_PARTNER"].ColumnName = "Trạng thái GD tại NH đối tác";
+        }
+
+        if (dt.Columns.Contains("ANSWER_CODE"))
+        {
+            dt.Columns["ANSWER_CODE"].ColumnName = "Mã trả lời";
+        }
+
+        if (dt.Columns.Contains("SO_TIEN_HTTS"))
+        {
+            dt.Columns["SO_TIEN_HTTS"].ColumnName = "Số tiền hoàn trả tra soát";
+        }
+
+        if (dt.Columns.Contains("NARRATIVE"))
+        {
+            dt.Columns["NARRATIVE"].ColumnName = "Nội dung giao dịch";
+        }
+
+        if (dt.Columns.Contains("NOTE"))
+        {
+            dt.Columns["NOTE"].ColumnName = "Ghi chú";
+        }
+
+        if (dt.Columns.Contains("ID_GD_RETURN"))
+        {
+            dt.Columns["ID_GD_RETURN"].ColumnName = "Mã GD ACH - GD return";
+        }
+
+        return dt;
+    }
